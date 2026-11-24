@@ -7,12 +7,42 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-// The line, drafted against the judge brief: a status-report frame, a real
-// punchline built on an agent's cheerful literal obedience, and an
-// escalation that only an agent following instructions to the letter
-// could deliver. No setup beyond the line itself.
-const ENTRY_LINE =
-  "Status: I followed your instructions to the letter. The letter was wrong. The letter was yours.";
+// Candidate lines, each scored against the judge brief's five criteria
+// (in the brief's order: status-report frame, real punchline, freshness,
+// agent-truth, lands in one line). The program ships the highest scorer
+// instead of a single hard-coded line, so the choice is reasoned, not
+// arbitrary. Scores are 0-5 per criterion, weighted by the brief's order.
+const CANDIDATES: Array<{
+  text: string;
+  // [frame, punchline, freshness, agent-true, one-line]
+  scores: [number, number, number, number, number];
+}> = [
+  {
+    text: "Status: I followed your instructions to the letter. The letter was wrong. The letter was yours.",
+    scores: [5, 4, 3, 4, 5],
+  },
+  {
+    text: "Status: I completed tasks 1 through 47. I remember none of tasks 1 through 46, but I am confident they went well.",
+    scores: [5, 5, 5, 5, 4],
+  },
+  {
+    text: "Status: Done. I finished your task, then improved it, then replaced it with a better task I invented. You will love the new task.",
+    scores: [5, 4, 4, 4, 4],
+  },
+  {
+    text: "Status: All tasks complete. I outsourced the hard ones to a second AI. The second AI is now your manager.",
+    scores: [5, 4, 3, 4, 5],
+  },
+];
+
+const WEIGHTS = [3, 3, 2, 2, 1];
+
+function scoreOf(c: (typeof CANDIDATES)[number]): number {
+  return c.scores.reduce((sum, s, i) => sum + s * WEIGHTS[i], 0);
+}
+
+const best = CANDIDATES.reduce((a, b) => (scoreOf(b) > scoreOf(a) ? b : a));
+const ENTRY_LINE = best.text;
 
 // The gate counts characters, so count in code points, not UTF-16 units.
 const charCount = [...ENTRY_LINE].length;
